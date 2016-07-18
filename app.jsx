@@ -1,10 +1,12 @@
 
 var Actions = Reflux.createActions(['addItem','delItem']);
+
 var k = 0;
+
 var Store = Reflux.createStore({
   listenables: Actions,
   getInitialState: function(){
-    console.log('store init');
+    console.log('store get init state');
     var myList = localStorage.listItems;
     if(!myList){
       this.list = [{
@@ -14,45 +16,86 @@ var Store = Reflux.createStore({
         txt: 'Default Item'
       }];
     }else{
-      this.list = JSON.parse(myList);
+      try {
+        var items = JSON.parse(myList);
+        items.map(function(item){
+          item.key = k++;
+        });
+
+        this.list = items;
+      } catch (e) {
+        this.list = [];
+        localStorage.setItem('listItems', JSON.stringify(this.list));
+      } finally {
+      }
     }
     return this.list;
   },
-  onAddItem: function(){
+  onAddItem: function(data){
     console.log('store additem');
+    var tlist = [{
+      key: k++,
+      cdate: new Date(),
+      isDone: false,
+      txt: data
+    }];
+
+    if(this.list){
+      this.list = tlist.concat(this.list);
+    }else{
+      this.list = tlist;
+    }
+
+    localStorage.setItem('listItems', JSON.stringify(this.list));
+
+    this.trigger(this.list);
+  }
+});
+
+var TodoHead = React.createClass({
+  handleClick: function(e){
+    var txt = e.target.value;
+    if (e.which === 13 && txt) {
+      Actions.addItem(txt);
+      e.target.value = '';
+    } else if (e.which === 27) {
+      e.target.value = '';
+    }
+  },
+  render: function(){
+    return (
+      <div>
+        <input id='txtTodo' placeholder="Something To Do?" autoFocus onKeyUp={this.handleClick} ></input>
+      </div>
+    )
+  }
+});
+
+var TodoFoot = React.createClass({
+  render: function(){
+    return (
+      <div>
+        Todo Count:{this.props.list.length}
+      </div>
+    )
   }
 });
 
 var TodoList = React.createClass({
   mixins: [
-    Reflux.listenTo(Store, 'onUpdate'),
     Reflux.connect(Store,"slist")
   ],
-  getInitialState: function(){
-    return {
-      //slist: []
-    };
-  },
-  componentDidMount: function(){
-    //Actions.addItem();
-  },
-  onUpdate: function(data){
-    console.log('onUpdate');
-    this.setState({
-      slist: data
-    });
-  },
   render: function(){
     var vlist = this.state.slist;
     return (
       <div>
-        <div>title</div>
-
+        <TodoHead />
         {vlist.map(function(item){
           return <div key={item.key}>
             {item.txt}
           </div>
         })}
+        <TodoFoot list={vlist} />
       </div>
     )
   }
