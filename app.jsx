@@ -1,6 +1,6 @@
 
 var Actions = Reflux.createActions(['addItem','delItem']);
-
+var k = 0;
 var Store = Reflux.createStore({
   listenables: Actions,
   getInitialState: function(){
@@ -8,6 +8,7 @@ var Store = Reflux.createStore({
     var myList = localStorage.listItems;
     if(!myList){
       this.list = [{
+        key: k++,
         cdate: new Date(),
         isDone: false,
         txt: 'Default Item'
@@ -23,15 +24,17 @@ var Store = Reflux.createStore({
 });
 
 var TodoList = React.createClass({
-  mixins: [Reflux.listenTo(Store, 'onUpdate'),
-Reflux.connect(Store,"slist")],
+  mixins: [
+    Reflux.listenTo(Store, 'onUpdate'),
+    Reflux.connect(Store,"slist")
+  ],
   getInitialState: function(){
     return {
       //slist: []
     };
   },
   componentDidMount: function(){
-    Actions.addItem();
+    //Actions.addItem();
   },
   onUpdate: function(data){
     console.log('onUpdate');
@@ -41,13 +44,21 @@ Reflux.connect(Store,"slist")],
   },
   render: function(){
     var vlist = this.state.slist;
-return (<div><div>title</div>
-  {vlist.map(function(item){
-    return <div>{item.txt}</div>
-  })}
-</div>)
+    return (
+      <div>
+        <div>title</div>
+
+        {vlist.map(function(item){
+          return <div key={item.key}>
+            {item.txt}
+          </div>
+        })}
+      </div>
+    )
   }
 })
 
-ReactDOM.render(<TodoList/>,
-  document.getElementById('container'));
+ReactDOM.render(
+  <TodoList/>,
+  document.getElementById('container')
+);
