@@ -49,6 +49,15 @@ var Store = Reflux.createStore({
     localStorage.setItem('listItems', JSON.stringify(this.list));
 
     this.trigger(this.list);
+  },
+  onDelItem: function(id){
+    this.list = this.list.filter(function(it){
+      return it.key != id;
+    });
+
+    localStorage.setItem('listItems', JSON.stringify(this.list));
+
+    this.trigger(this.list);
   }
 });
 
@@ -81,19 +90,32 @@ var TodoFoot = React.createClass({
   }
 });
 
+var TodoItem = React.createClass({
+  handleDel: function(e){
+    Actions.delItem(this.props.it.key);
+  },
+  render: function(){
+    return (
+        <div>
+          <button onClick={this.handleDel}>X</button>
+          <div>{this.props.it.txt}</div>
+        </div>
+    )
+  }
+});
+
 var TodoList = React.createClass({
   mixins: [
     Reflux.connect(Store,"slist")
   ],
   render: function(){
     var vlist = this.state.slist;
+    var del = this.handleDel;
     return (
       <div>
         <TodoHead />
         {vlist.map(function(item){
-          return <div key={item.key}>
-            {item.txt}
-          </div>
+          return <TodoItem key={item.key} it={item}/>
         })}
         <TodoFoot list={vlist} />
       </div>
