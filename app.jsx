@@ -1,71 +1,11 @@
 
-var Actions = Reflux.createActions(['addItem','delItem']);
-
 var k = 0;
-
-var Store = Reflux.createStore({
-  listenables: Actions,
-  getInitialState: function(){
-    console.log('store get init state');
-    var myList = localStorage.listItems;
-    if(!myList){
-      this.list = [{
-        key: k++,
-        cdate: new Date(),
-        isDone: false,
-        txt: 'Default Item'
-      }];
-    }else{
-      try {
-        var items = JSON.parse(myList);
-        items.map(function(item){
-          item.key = k++;
-        });
-
-        this.list = items;
-      } catch (e) {
-        this.list = [];
-        localStorage.setItem('listItems', JSON.stringify(this.list));
-      } finally {
-      }
-    }
-    return this.list;
-  },
-  onAddItem: function(data){
-    console.log('store additem');
-    var tlist = [{
-      key: k++,
-      cdate: new Date(),
-      isDone: false,
-      txt: data
-    }];
-
-    if(this.list){
-      this.list = tlist.concat(this.list);
-    }else{
-      this.list = tlist;
-    }
-
-    localStorage.setItem('listItems', JSON.stringify(this.list));
-
-    this.trigger(this.list);
-  },
-  onDelItem: function(id){
-    this.list = this.list.filter(function(it){
-      return it.key != id;
-    });
-
-    localStorage.setItem('listItems', JSON.stringify(this.list));
-
-    this.trigger(this.list);
-  }
-});
 
 var TodoHead = React.createClass({
   handleClick: function(e){
     var txt = e.target.value;
     if (e.which === 13 && txt) {
-      Actions.addItem(txt);
+      this.props.addItem(txt);
       e.target.value = '';
     } else if (e.which === 27) {
       e.target.value = '';
@@ -92,7 +32,7 @@ var TodoFoot = React.createClass({
 
 var TodoItem = React.createClass({
   handleDel: function(e){
-    Actions.delItem(this.props.it.key);
+    this.props.delItem(this.props.it.key);
   },
   render: function(){
     return (
@@ -105,17 +45,73 @@ var TodoItem = React.createClass({
 });
 
 var TodoList = React.createClass({
-  mixins: [
-    Reflux.connect(Store,"slist")
-  ],
+  getInitialState: function(){
+    console.log('store get init state');
+    var myList = localStorage.listItems;
+    if(!myList){
+      myList = [{
+        key: k++,
+        cdate: new Date(),
+        isDone: false,
+        txt: 'Default Item'
+      }];
+    }else{
+      try {
+        var items = JSON.parse(myList);
+        items.map(function(item){
+          item.key = k++;
+        });
+
+        myList = items;
+      } catch (e) {
+        myList = [];
+
+      } finally {
+      }
+    }
+
+    localStorage.setItem('listItems', JSON.stringify(myList));
+    return {slist: myList}
+  },
+  onAddItem: function(data){
+    console.log('store additem');
+    var tlist = [{
+      key: k++,
+      cdate: new Date(),
+      isDone: false,
+      txt: data
+    }];
+
+    var myList = this.state.slist;
+
+    if(myList){
+      myList = tlist.concat(myList);
+    }else{
+      myList = tlist;
+    }
+
+    localStorage.setItem('listItems', JSON.stringify(myList));
+
+    this.setState({slist: myList});
+
+  },
+  onDelItem: function(id){
+    var myList = this.state.slist.filter(function(it){
+      return it.key != id;
+    });
+
+    localStorage.setItem('listItems', JSON.stringify(myList));
+
+this.setState({slist: myList});
+  },
   render: function(){
     var vlist = this.state.slist;
-    var del = this.handleDel;
+ var del = this.onDelItem;
     return (
       <div>
-        <TodoHead />
+        <TodoHead addItem={this.onAddItem} />
         {vlist.map(function(item){
-          return <TodoItem key={item.key} it={item}/>
+          return <TodoItem key={item.key} it={item} delItem={del}/>
         })}
         <TodoFoot list={vlist} />
       </div>
