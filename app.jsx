@@ -1,5 +1,5 @@
 
-var k = 0;
+
 
 var TodoHead = React.createClass({
   handleClick: function(e){
@@ -14,7 +14,12 @@ var TodoHead = React.createClass({
   render: function(){
     return (
       <div>
-        <input id='txtTodo' placeholder="Something To Do?" autoFocus onKeyUp={this.handleClick} ></input>
+        <input
+          id='txtTodo'
+          placeholder="Something To Do?"
+          autoFocus
+          onKeyUp={this.handleClick} >
+        </input>
       </div>
     )
   }
@@ -24,7 +29,7 @@ var TodoFoot = React.createClass({
   render: function(){
     return (
       <div>
-        Todo Count:{this.props.list.length}
+        Todo Count:{this.props.counter}
       </div>
     )
   }
@@ -34,86 +39,81 @@ var TodoItem = React.createClass({
   handleDel: function(e){
     this.props.delItem(this.props.it.key);
   },
+  handleChk: function(e){
+    this.props.chkItem(this.props.it.key);
+  },
   render: function(){
     return (
-        <div>
-          <button onClick={this.handleDel}>X</button>
-          <div>{this.props.it.txt}</div>
-        </div>
+      <div>
+        <input type="checkbox" checked={this.props.it.isDone} onChange={this.handleChk}></input>
+        <span>
+          id:{this.props.it.key}, {this.props.it.txt}
+        </span>
+        <button onClick={this.handleDel}>X</button>
+      </div>
     )
   }
 });
 
 var TodoList = React.createClass({
   getInitialState: function(){
-    console.log('store get init state');
-    var myList = localStorage.listItems;
-    if(!myList){
-      myList = [{
-        key: k++,
-        cdate: new Date(),
-        isDone: false,
-        txt: 'Default Item'
-      }];
-    }else{
-      try {
-        var items = JSON.parse(myList);
-        items.map(function(item){
-          item.key = k++;
-        });
-
-        myList = items;
-      } catch (e) {
-        myList = [];
-
-      } finally {
-      }
-    }
-
-    localStorage.setItem('listItems', JSON.stringify(myList));
-    return {slist: myList}
+    return {slist: this.getState()};
   },
   onAddItem: function(data){
-    console.log('store additem');
-    var tlist = [{
-      key: k++,
+    var k = 0;
+    this.state.slist.map(function(item){
+      k = Math.max(k, item.key);
+    });
+
+    var myList = [{
+      key: ++k,
       cdate: new Date(),
       isDone: false,
       txt: data
-    }];
-
-    var myList = this.state.slist;
-
-    if(myList){
-      myList = tlist.concat(myList);
-    }else{
-      myList = tlist;
-    }
-
-    localStorage.setItem('listItems', JSON.stringify(myList));
-
-    this.setState({slist: myList});
-
+    }].concat(this.state.slist);
+    this.updateState(myList);
   },
-  onDelItem: function(id){
-    var myList = this.state.slist.filter(function(it){
-      return it.key != id;
+ onDelItem: function(id){
+    var myList = this.state.slist.filter(function(item){
+      return item.key != id;
     });
+    this.updateState(myList);
+  },
+  onCheckItem: function(id){
+    var myList = this.state.slist;
+    myList.map(function(item){
+      if(item.key == id) item.isDone = !item.isDone;
+    });
+    this.updateState(myList);
+  },
+  getState: function(){
+    var myList = localStorage.listItems;
 
+    if(!myList){
+      myList = [];
+    }else{
+      try {
+        myList = JSON.parse(myList);
+      } catch (e) {
+        myList = [];
+      }
+    }
+    return myList;
+  },
+  updateState: function(myList){
     localStorage.setItem('listItems', JSON.stringify(myList));
-
-this.setState({slist: myList});
+    this.setState({slist: myList});
   },
   render: function(){
-    var vlist = this.state.slist;
- var del = this.onDelItem;
+    var fnDel = this.onDelItem;
+    var fnChk = this.onCheckItem;
     return (
       <div>
         <TodoHead addItem={this.onAddItem} />
-        {vlist.map(function(item){
-          return <TodoItem key={item.key} it={item} delItem={del}/>
+        {this.state.slist.map(function(item){
+          return <TodoItem key={item.key} it={item} delItem={fnDel} chkItem={fnChk}/>
         })}
-        <TodoFoot list={vlist} />
+        <TodoFoot counter={this.state.slist.length} />
       </div>
     )
   }
